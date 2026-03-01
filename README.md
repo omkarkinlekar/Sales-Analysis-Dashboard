@@ -101,6 +101,12 @@ retail-sales-analysis/
 
 ---
 
+## 📊 Live Dashboard 
+
+👉 [Live Demo](https://sales-analysis-omkar.netlify.app)
+
+---
+
 ## 💡 How to Run
 
 1. Clone the repo
@@ -121,7 +127,7 @@ retail-sales-analysis/
 
 ## 🙏 Acknowledgements
 
-- Dataset sourced via [Kaggle](https://www.kaggle.com)
+- Dataset sourced via [Kaggle](https://www.kaggle.com/datasets/regivm/retailtransactiondata)
 - Project structure and guidance by [Internship Studio](https://www.internshipstudio.com)
 
 ---
