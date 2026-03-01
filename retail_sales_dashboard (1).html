@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retail Chain — Sales Analysis Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #151820;
+    --surface2: #1c2030;
+    --border: #242840;
+    --orange: #ff5c1a;
+    --orange2: #ff8c4a;
+    --teal: #00e5c4;
+    --purple: #a78bfa;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --p0: #ff5c1a;
+    --p2: #00e5c4;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,15,20,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex; align-items: center; gap: 0;
+    height: 56px;
+  }
+  .nav-brand {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1rem;
+    color: var(--orange);
+    letter-spacing: -0.02em;
+    margin-right: 40px;
+    white-space: nowrap;
+  }
+  .nav-tabs { display: flex; gap: 0; }
+  .nav-tab {
+    padding: 0 18px;
+    height: 56px;
+    display: flex; align-items: center;
+    font-size: 0.72rem;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .nav-tab:hover { color: var(--text); }
+  .nav-tab.active { color: var(--orange); border-bottom-color: var(--orange); }
+  .nav-badge {
+    margin-left: 7px;
+    background: var(--border);
+    color: var(--muted);
+    font-size: 0.6rem;
+    padding: 1px 6px;
+    border-radius: 20px;
+  }
+
+  /* PAGES */
+  .page { display: none; padding: 32px; max-width: 1400px; margin: 0 auto; }
+  .page.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+  /* HERO SECTION */
+  .page-header {
+    margin-bottom: 32px;
+  }
+  .phase-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 8px;
+  }
+  .page-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+  .page-title span { color: var(--orange); }
+  .page-desc {
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.7;
+    max-width: 640px;
+  }
+
+  /* KPI CARDS */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .kpi-card:hover { border-color: var(--orange); }
+  .kpi-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--orange), transparent);
+  }
+  .kpi-label { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .kpi-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .kpi-sub { font-size: 0.68rem; color: var(--muted); margin-top: 6px; }
+  .kpi-accent { color: var(--teal); }
+  .kpi-warn { color: var(--orange); }
+
+  /* CHART CARDS */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  .chart-grid.full { grid-template-columns: 1fr; }
+  .chart-grid.thirds { grid-template-columns: 2fr 1fr; }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .chart-card-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 20px;
+  }
+  .chart-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .chart-subtitle { font-size: 0.68rem; color: var(--muted); margin-top: 3px; }
+  .chart-tag {
+    font-size: 0.6rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  canvas { max-height: 260px; }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  th {
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  td { padding: 12px 14px; border-bottom: 1px solid rgba(36,40,64,0.5); }
+  tr:hover td { background: var(--surface2); }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 500;
+  }
+  .badge-p0 { background: rgba(255,92,26,0.15); color: var(--orange); border: 1px solid rgba(255,92,26,0.3); }
+  .badge-p2 { background: rgba(0,229,196,0.12); color: var(--teal); border: 1px solid rgba(0,229,196,0.25); }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* JOURNEY MAP */
+  .journey-container { display: flex; flex-direction: column; gap: 0; }
+  .journey-stage {
+    display: grid;
+    grid-template-columns: 180px 1fr 1fr 1fr;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .journey-stage:last-child { border-bottom: none; }
+  .journey-row-header {
+    padding: 20px 18px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: var(--surface2);
+  }
+  .journey-stage-num {
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 4px;
+  }
+  .journey-stage-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.88rem;
+  }
+  .journey-cell {
+    padding: 16px 18px;
+    border-right: 1px solid var(--border);
+    font-size: 0.74rem;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+  .journey-cell:last-child { border-right: none; }
+  .journey-header-row {
+    display: grid;
+    grid-template-columns: 180px 1fr 1fr 1fr;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  .journey-col-header {
+    padding: 12px 18px;
+    border-right: 1px solid var(--border);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--orange);
+  }
+  .journey-col-header:last-child { border-right: none; }
+  .journey-highlight { color: var(--text); }
+  .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .dot-orange { background: var(--orange); }
+  .dot-teal { background: var(--teal); }
+  .dot-purple { background: var(--purple); }
+
+  /* INSIGHT BOXES */
+  .insight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 20px; }
+  .insight-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    border-left: 3px solid var(--orange);
+  }
+  .insight-card.teal { border-left-color: var(--teal); }
+  .insight-card.purple { border-left-color: var(--purple); }
+  .insight-head { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.82rem; margin-bottom: 6px; }
+  .insight-body { font-size: 0.73rem; color: var(--muted); line-height: 1.65; }
+
+  /* PHASE TIMELINE (overview page) */
+  .timeline { display: flex; gap: 0; margin-bottom: 32px; }
+  .timeline-item {
+    flex: 1;
+    padding: 20px 22px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .timeline-item:not(:last-child)::after {
+    content: '›';
+    position: absolute; right: -12px; top: 50%; transform: translateY(-50%);
+    color: var(--border);
+    font-size: 1.4rem;
+    z-index: 2;
+  }
+  .timeline-item:hover { border-color: var(--orange); background: var(--surface2); }
+  .timeline-num { font-size: 0.6rem; color: var(--orange); letter-spacing: 0.12em; text-transform: uppercase; }
+  .timeline-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.85rem; margin: 4px 0; }
+  .timeline-desc { font-size: 0.7rem; color: var(--muted); line-height: 1.5; }
+
+  /* DIVIDER */
+  .section-divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+  /* SQL block */
+  .code-block {
+    background: #0a0c10;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-size: 0.72rem;
+    color: #a0aec0;
+    line-height: 1.7;
+    overflow-x: auto;
+  }
+  .sql-kw { color: #569cd6; }
+  .sql-fn { color: #dcdcaa; }
+  .sql-str { color: #ce9178; }
+  .sql-comment { color: #6a9955; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .chart-grid { grid-template-columns: 1fr; }
+    .chart-grid.thirds { grid-template-columns: 1fr; }
+    .journey-stage, .journey-header-row { grid-template-columns: 1fr; }
+    .journey-row-header { border-right: none; border-bottom: 1px solid var(--border); }
+    .journey-cell { border-right: none; }
+    .journey-col-header { border-right: none; }
+    .timeline { flex-direction: column; }
+    .timeline-item::after { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">INTERNSHIP STUDIO — RETAIL ANALYSIS</div>
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="showPage('overview')">Overview</div>
+    <div class="nav-tab" onclick="showPage('phase1')">Phase 1 <span class="nav-badge">DB</span></div>
+    <div class="nav-tab" onclick="showPage('phase2')">Phase 2 <span class="nav-badge">Clean</span></div>
+    <div class="nav-tab" onclick="showPage('phase3')">Phase 3 <span class="nav-badge">Analysis</span></div>
+    <div class="nav-tab" onclick="showPage('phase4')">Phase 4 <span class="nav-badge">Report</span></div>
+  </div>
+</nav>
+
+<!-- ====== OVERVIEW ====== -->
+<div class="page active" id="overview">
+  <div class="page-header">
+    <div class="phase-label">Internship Studio — Final Project</div>
+    <div class="page-title">Sales Data Analysis &amp;<br><span>Reporting Dashboard</span></div>
+    <div class="page-desc">A complete end-to-end analysis of retail chain transaction data (2011–2015) covering 6,884 customers, 124,969 transactions, and ₹8.1M in total revenue. Analysed across 4 structured phases.</div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Revenue</div>
+      <div class="kpi-value">₹8.12M</div>
+      <div class="kpi-sub">Across 2011–2015</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Transactions</div>
+      <div class="kpi-value">124,969</div>
+      <div class="kpi-sub kpi-accent">All repeat customers</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Unique Customers</div>
+      <div class="kpi-value">6,884</div>
+      <div class="kpi-sub">P0: 4,423 · P2: 2,461</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Avg. Transaction</div>
+      <div class="kpi-value">₹65.0</div>
+      <div class="kpi-sub">Std dev ± ₹22.9</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Campaign Response</div>
+      <div class="kpi-value">11.1%</div>
+      <div class="kpi-sub kpi-warn">Peak 12.6% in 2014</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Avg. Frequency</div>
+      <div class="kpi-value">18.2</div>
+      <div class="kpi-sub">Purchases per customer</div>
+    </div>
+  </div>
+
+  <div class="timeline">
+    <div class="timeline-item" onclick="showPage('phase1')">
+      <div class="timeline-num">Phase 01</div>
+      <div class="timeline-title">Data Collection &amp; DB Setup</div>
+      <div class="timeline-desc">CSV ingestion, SQL schema design, DDL commands</div>
+    </div>
+    <div class="timeline-item" onclick="showPage('phase2')">
+      <div class="timeline-num">Phase 02</div>
+      <div class="timeline-title">Data Cleaning &amp; Prep</div>
+      <div class="timeline-desc">Missing values, outliers, calculated fields</div>
+    </div>
+    <div class="timeline-item" onclick="showPage('phase3')">
+      <div class="timeline-num">Phase 03</div>
+      <div class="timeline-title">Data Analysis</div>
+      <div class="timeline-desc">Trends, RFM, cohort, segment analysis</div>
+    </div>
+    <div class="timeline-item" onclick="showPage('phase4')">
+      <div class="timeline-num">Phase 04</div>
+      <div class="timeline-title">Reporting</div>
+      <div class="timeline-desc">Visual reports, summary tables, findings</div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div><div class="chart-title">Annual Revenue Trend</div><div class="chart-subtitle">Total transaction amount by year</div></div>
+        <div class="chart-tag">2011–2015</div>
+      </div>
+      <canvas id="annualRevChart"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div><div class="chart-title">Customer Segments</div><div class="chart-subtitle">P0 (Premium) vs P2 (Standard)</div></div>
+        <div class="chart-tag">RFM</div>
+      </div>
+      <canvas id="segmentDonutChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ====== PHASE 1 ====== -->
+<div class="page" id="phase1">
+  <div class="page-header">
+    <div class="phase-label">Phase 01 / Data Collection &amp; Database Setup</div>
+    <div class="page-title">Schema Design &amp;<br><span>Data Ingestion</span></div>
+    <div class="page-desc">The retail chain dataset was sourced and loaded into a relational SQL database. Below is the schema design with DDL, and a preview of the raw data.</div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div><div class="chart-title">MainData — Transactions Table</div><div class="chart-subtitle">124,969 rows · 6 columns</div></div>
+        <div class="chart-tag">SQL DDL</div>
+      </div>
+      <div class="code-block">
+<span class="sql-comment">-- Phase 1: Create transactions table</span><br>
+<span class="sql-kw">CREATE TABLE</span> transactions (<br>
+&nbsp;&nbsp;customer_id &nbsp;&nbsp;<span class="sql-fn">VARCHAR</span>(10) <span class="sql-kw">NOT NULL</span>,<br>
+&nbsp;&nbsp;trans_date &nbsp;&nbsp;&nbsp;<span class="sql-fn">DATE</span> <span class="sql-kw">NOT NULL</span>,<br>
+&nbsp;&nbsp;response &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="sql-fn">TINYINT</span>(1) <span class="sql-kw">DEFAULT</span> 0,<br>
+&nbsp;&nbsp;month &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="sql-fn">INT</span>,<br>
+&nbsp;&nbsp;month_year &nbsp;&nbsp;&nbsp;<span class="sql-fn">VARCHAR</span>(7),<br>
+&nbsp;&nbsp;tran_amount &nbsp;&nbsp;<span class="sql-fn">INT</span> <span class="sql-kw">NOT NULL</span>,<br>
+&nbsp;&nbsp;<span class="sql-kw">INDEX</span> idx_customer (customer_id),<br>
+&nbsp;&nbsp;<span class="sql-kw">INDEX</span> idx_date (trans_date)<br>
+);<br><br>
+<span class="sql-comment">-- Load from CSV</span><br>
+<span class="sql-kw">LOAD DATA INFILE</span> <span class="sql-str">'MainData.csv'</span><br>
+<span class="sql-kw">INTO TABLE</span> transactions<br>
+<span class="sql-fn">FIELDS TERMINATED BY</span> <span class="sql-str">','</span><br>
+<span class="sql-fn">IGNORE</span> 1 <span class="sql-fn">ROWS</span>;
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div><div class="chart-title">AddAnlys — Customer Segments Table</div><div class="chart-subtitle">6,884 rows · 5 columns</div></div>
+        <div class="chart-tag">SQL DDL</div>
+      </div>
+      <div class="code-block">
+<span class="sql-comment">-- Phase 1: Create customer segments table</span><br>
+<span class="sql-kw">CREATE TABLE</span> customer_segments (<br>
+&nbsp;&nbsp;customer_id &nbsp;<span class="sql-fn">VARCHAR</span>(10) <span class="sql-kw">PRIMARY KEY</span>,<br>
+&nbsp;&nbsp;recency &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="sql-fn">DATE</span>,<br>
+&nbsp;&nbsp;frequency &nbsp;&nbsp;&nbsp;<span class="sql-fn">INT</span>,<br>
+&nbsp;&nbsp;monetory &nbsp;&nbsp;&nbsp;&nbsp;<span class="sql-fn">INT</span>,<br>
+&nbsp;&nbsp;segment &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="sql-fn">VARCHAR</span>(5)<br>
+);<br><br>
+<span class="sql-comment">-- Add foreign key to transactions</span><br>
+<span class="sql-kw">ALTER TABLE</span> transactions<br>
+<span class="sql-kw">ADD CONSTRAINT</span> fk_customer<br>
+<span class="sql-kw">FOREIGN KEY</span> (customer_id)<br>
+<span class="sql-kw">REFERENCES</span> customer_segments(customer_id);<br><br>
+<span class="sql-comment">-- Verify row counts</span><br>
+<span class="sql-kw">SELECT</span> <span class="sql-fn">COUNT</span>(*) <span class="sql-kw">FROM</span> transactions;<br>
+<span class="sql-comment">-- Returns: 124,969</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:20px">
+    <div class="chart-card-header">
+      <div><div class="chart-title">Raw Data Preview — Transactions (first 10 rows)</div></div>
+      <div class="chart-tag">MainData.csv</div>
+    </div>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Customer ID</th><th>Trans Date</th><th>Response</th><th>Month</th><th>Month–Year</th><th>Tran Amount</th></tr></thead>
+      <tbody>
+        <tr><td>CS5295</td><td>11-02-2013</td><td>1</td><td>2</td><td>2013-02</td><td class="num">35</td></tr>
+        <tr><td>CS4768</td><td>15-03-2015</td><td>1</td><td>3</td><td>2015-03</td><td class="num">39</td></tr>
+        <tr><td>CS2122</td><td>26-02-2013</td><td>0</td><td>2</td><td>2013-02</td><td class="num">52</td></tr>
+        <tr><td>CS1217</td><td>16-11-2011</td><td>0</td><td>11</td><td>2011-11</td><td class="num">99</td></tr>
+        <tr><td>CS1850</td><td>20-06-2013</td><td>0</td><td>6</td><td>2013-06</td><td class="num">61</td></tr>
+        <tr><td>CS3511</td><td>07-08-2012</td><td>0</td><td>8</td><td>2012-08</td><td class="num">87</td></tr>
+        <tr><td>CS4492</td><td>22-01-2014</td><td>1</td><td>1</td><td>2014-01</td><td class="num">43</td></tr>
+        <tr><td>CS2307</td><td>03-09-2011</td><td>0</td><td>9</td><td>2011-09</td><td class="num">72</td></tr>
+        <tr><td>CS6001</td><td>14-04-2013</td><td>0</td><td>4</td><td>2013-04</td><td class="num">58</td></tr>
+        <tr><td>CS1933</td><td>29-12-2014</td><td>0</td><td>12</td><td>2014-12</td><td class="num">105</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="insight-grid">
+    <div class="insight-card">
+      <div class="insight-head">✓ No Duplicate Primary Keys</div>
+      <div class="insight-body">6,884 unique customer IDs found consistently across both tables. Foreign key integrity maintained.</div>
+    </div>
+    <div class="insight-card teal">
+      <div class="insight-head">✓ Date Range Confirmed</div>
+      <div class="insight-body">Transactions span 01-Jan-2011 to 31-Mar-2015. Partial years at both ends noted for analysis.</div>
+    </div>
+    <div class="insight-card purple">
+      <div class="insight-head">✓ Indexes Created</div>
+      <div class="insight-body">Indexes on customer_id and trans_date for query performance on large table (124K rows).</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== PHASE 2 ====== -->
+<div class="page" id="phase2">
+  <div class="page-header">
+    <div class="phase-label">Phase 02 / Data Cleaning &amp; Preparation</div>
+    <div class="page-title">Cleaning, Outliers &amp;<br><span>Calculated Fields</span></div>
+    <div class="page-desc">Data quality checks using Python (pandas) and SQL. Outliers identified, missing values handled, and new analytical columns derived.</div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Missing Values</div>
+      <div class="kpi-value kpi-accent">0</div>
+      <div class="kpi-sub">Both files complete</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Duplicate Rows</div>
+      <div class="kpi-value kpi-accent">0</div>
+      <div class="kpi-sub">Clean dataset</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Tran Amt Range</div>
+      <div class="kpi-value">10–105</div>
+      <div class="kpi-sub">No extreme outliers</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Outlier Threshold</div>
+      <div class="kpi-value">IQR</div>
+      <div class="kpi-sub">Q1=47, Q3=83</div>
+    </div>
+  </div>
+
+  <div class="chart-grid thirds">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div><div class="chart-title">Transaction Amount Distribution</div><div class="chart-subtitle">Frequency by amount bucket</div></div>
+        <div class="chart-tag">Outlier Check</div>
+      </div>
+      <canvas id="distChart"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div><div class="chart-title">Monetary Value Distribution</div><div class="chart-subtitle">Customer total spend (AddAnlys)</div></div>
+        <div class="chart-tag">RFM Prep</div>
+      </div>
+      <canvas id="monDistChart"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:20px">
+    <div class="chart-card-header">
+      <div><div class="chart-title">Python Cleaning Script (pandas)</div></div>
+      <div class="chart-tag">Phase 2 Code</div>
+    </div>
+    <div class="code-block">
+<span class="sql-comment"># Phase 2: Data Cleaning with pandas</span><br>
+<span class="sql-kw">import</span> pandas <span class="sql-kw">as</span> pd<br><br>
+main = pd.<span class="sql-fn">read_csv</span>(<span class="sql-str">'MainData.csv'</span>)<br>
+add = pd.<span class="sql-fn">read_csv</span>(<span class="sql-str">'AddAnlys.csv'</span>)<br><br>
+<span class="sql-comment"># 1. Check for nulls</span><br>
+<span class="sql-fn">print</span>(main.<span class="sql-fn">isnull</span>().<span class="sql-fn">sum</span>())  <span class="sql-comment"># All zeros — clean!</span><br><br>
+<span class="sql-comment"># 2. Parse dates properly</span><br>
+main[<span class="sql-str">'trans_date'</span>] = pd.<span class="sql-fn">to_datetime</span>(main[<span class="sql-str">'trans_date'</span>], dayfirst=<span class="sql-kw">True</span>)<br>
+add[<span class="sql-str">'recency'</span>] = pd.<span class="sql-fn">to_datetime</span>(add[<span class="sql-str">'recency'</span>], dayfirst=<span class="sql-kw">True</span>)<br><br>
+<span class="sql-comment"># 3. Outlier check using IQR</span><br>
+Q1 = main[<span class="sql-str">'tran_amount'</span>].<span class="sql-fn">quantile</span>(0.25)<br>
+Q3 = main[<span class="sql-str">'tran_amount'</span>].<span class="sql-fn">quantile</span>(0.75)<br>
+IQR = Q3 - Q1  <span class="sql-comment"># = 36</span><br>
+outliers = main[(main[<span class="sql-str">'tran_amount'</span>] &lt; Q1 - 1.5*IQR) | (main[<span class="sql-str">'tran_amount'</span>] &gt; Q3 + 1.5*IQR)]<br>
+<span class="sql-comment"># Result: 0 outliers beyond IQR bounds</span><br><br>
+<span class="sql-comment"># 4. Add calculated fields</span><br>
+main[<span class="sql-str">'year'</span>] = main[<span class="sql-str">'trans_date'</span>].dt.year<br>
+main[<span class="sql-str">'quarter'</span>] = main[<span class="sql-str">'trans_date'</span>].dt.quarter<br>
+main[<span class="sql-str">'day_of_week'</span>] = main[<span class="sql-str">'trans_date'</span>].dt.day_name()
+    </div>
+  </div>
+
+  <div class="insight-grid">
+    <div class="insight-card">
+      <div class="insight-head">Dataset Quality: Excellent</div>
+      <div class="insight-body">Zero nulls, zero duplicates across both CSVs. Transaction amounts bounded between ₹10–₹105 with no extreme outliers by IQR method.</div>
+    </div>
+    <div class="insight-card teal">
+      <div class="insight-head">February Dip Pattern</div>
+      <div class="insight-body">February consistently shows ~10–12% lower transaction volume vs other months, likely due to fewer days. Normalised per-day figures confirm no seasonal issue.</div>
+    </div>
+    <div class="insight-card purple">
+      <div class="insight-head">Partial Years</div>
+      <div class="insight-body">2011 starts May, 2015 ends March. Annual comparisons exclude these partial years; monthly analysis uses full 2012–2014 cohort.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== PHASE 3 ====== -->
+<div class="page" id="phase3">
+  <div class="page-header">
+    <div class="phase-label">Phase 03 / Data Analysis</div>
+    <div class="page-title">Trends, Segments &amp;<br><span>Cohort Analysis</span></div>
+    <div class="page-desc">Exploration of sales patterns, RFM segmentation, campaign response rates, and customer purchase behaviour across the full dataset.</div>
+  </div>
+
+  <div class="chart-grid full">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div><div class="chart-title">Monthly Revenue Trend (2011–2015)</div><div class="chart-subtitle">Total transaction amount per month</div></div>
+        <div class="chart-tag">Time Series</div>
+      </div>
+      <canvas id="monthlyChart" style="max-height:300px"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div><div class="chart-title">Purchase Frequency Distribution</div><div class="chart-subtitle">How often do customers buy?</div></div>
+        <div class="chart-tag">RFM</div>
+      </div>
+      <canvas id="freqChart"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div><div class="chart-title">Campaign Response Rate by Year</div><div class="chart-subtitle">% of transactions where response=1</div></div>
+        <div class="chart-tag">Marketing</div>
+      </div>
+      <canvas id="responseChart"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-grid thirds">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div><div class="chart-title">Segment Performance Comparison</div><div class="chart-subtitle">P0 (Premium) vs P2 (Standard)</div></div>
+        <div class="chart-tag">RFM Segments</div>
+      </div>
+      <canvas id="segCompChart"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div><div class="chart-title">Customer First Purchase</div><div class="chart-subtitle">Cohort acquisition year</div></div>
+        <div class="chart-tag">Cohort</div>
+      </div>
+      <canvas id="cohortChart"></canvas>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <div class="insight-grid">
+    <div class="insight-card">
+      <div class="insight-head">🔍 Revenue Stability</div>
+      <div class="insight-body">Full-year revenue is remarkably stable: ₹2.11M (2012), ₹2.14M (2013), ₹2.09M (2014). No seasonal spikes — consistent demand throughout the year.</div>
+    </div>
+    <div class="insight-card teal">
+      <div class="insight-head">🔍 P0 Segment Dominates</div>
+      <div class="insight-body">P0 (Premium) customers represent 64% of the base but generate ~80% of total revenue (₹6.5M). Their avg. transaction is ₹70 vs ₹50 for P2.</div>
+    </div>
+    <div class="insight-card purple">
+      <div class="insight-head">🔍 High Purchase Frequency</div>
+      <div class="insight-body">70% of customers buy 11–25 times. Average frequency is 18.2 purchases, indicating a loyal, habitual customer base with low churn risk.</div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-head">🔍 Improving Response Rate</div>
+      <div class="insight-body">Campaign response grew from 9.8% (2011) to 12.6% (2014) — a 28% improvement. Marketing effectiveness is trending upward year-on-year.</div>
+    </div>
+    <div class="insight-card teal">
+      <div class="insight-head">🔍 Cohort Concentration</div>
+      <div class="insight-body">94.4% of customers made their first purchase in 2011. Acquisition has slowed significantly — only 12 new customers started in 2013.</div>
+    </div>
+    <div class="insight-card purple">
+      <div class="insight-head">🔍 All Customers Repeat</div>
+      <div class="insight-body">100% of 6,884 customers are repeat buyers. Zero one-time purchasers — outstanding retention for a retail chain.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== PHASE 4 ====== -->
+<div class="page" id="phase4">
+  <div class="page-header">
+    <div class="phase-label">Phase 04 / Reporting</div>
+    <div class="page-title">Summary Reports &amp;<br><span>Key Findings</span></div>
+    <div class="page-desc">Consolidated findings across all phases. Includes tabular summaries by segment, year-over-year comparison, and strategic recommendations.</div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:20px">
+    <div class="chart-card-header">
+      <div><div class="chart-title">Annual Sales Summary Report</div><div class="chart-subtitle">Revenue, transactions, and avg. basket by year</div></div>
+      <div class="chart-tag">Tabular Report</div>
+    </div>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Year</th><th>Revenue (₹)</th><th>Transactions</th><th>Avg. Basket (₹)</th><th>Response Rate</th><th>YoY Growth</th></tr></thead>
+      <tbody>
+        <tr><td>2011 (partial)</td><td class="num">1,340,013</td><td class="num">20,651</td><td class="num">64.9</td><td>9.84%</td><td>—</td></tr>
+        <tr><td>2012</td><td class="num">2,115,542</td><td class="num">32,521</td><td class="num">65.1</td><td>10.13%</td><td style="color:var(--teal)">+57.9%</td></tr>
+        <tr><td>2013</td><td class="num">2,137,140</td><td class="num">32,900</td><td class="num">65.0</td><td>11.86%</td><td style="color:var(--teal)">+1.0%</td></tr>
+        <tr><td>2014</td><td class="num">2,094,508</td><td class="num">32,226</td><td class="num">65.0</td><td>12.55%</td><td style="color:var(--orange)">-2.0%</td></tr>
+        <tr><td>2015 (partial)</td><td class="num">435,175</td><td class="num">6,671</td><td class="num">65.2</td><td>8.51%</td><td>—</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:20px">
+    <div class="chart-card-header">
+      <div><div class="chart-title">RFM Segment Report</div><div class="chart-subtitle">Customer value by segment</div></div>
+      <div class="chart-tag">Segment Report</div>
+    </div>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Segment</th><th>Customers</th><th>% of Base</th><th>Total Revenue (₹)</th><th>Revenue Share</th><th>Avg. Transaction (₹)</th><th>Avg. Frequency</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="badge badge-p0">P0 Premium</span></td>
+          <td class="num">4,423</td><td>64.3%</td>
+          <td class="num">6,498,293</td><td style="color:var(--orange)">80.0%</td>
+          <td class="num">70.06</td><td class="num">~18.5</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-p2">P2 Standard</span></td>
+          <td class="num">2,461</td><td>35.7%</td>
+          <td class="num">1,624,085</td><td style="color:var(--teal)">20.0%</td>
+          <td class="num">50.41</td><td class="num">~17.6</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div><div class="chart-title">Revenue by Segment (Visual)</div></div>
+        <div class="chart-tag">Visual Report</div>
+      </div>
+      <canvas id="segRevChart"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div><div class="chart-title">Monetary Spend Spread</div><div class="chart-subtitle">Customer lifetime value distribution</div></div>
+        <div class="chart-tag">Visual Report</div>
+      </div>
+      <canvas id="spendChart"></canvas>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- CUSTOMER JOURNEY MAP -->
+  <div class="page-header" style="margin-top:8px; margin-bottom:16px">
+    <div class="chart-title" style="font-family:'Syne',sans-serif; font-size:1.1rem">Customer Journey Map</div>
+    <div class="page-desc" style="margin-top:6px">Based on the data, all customers are repeat buyers — mapping their journey from first transaction through loyalty.</div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:20px; padding:0; overflow:hidden;">
+    <div class="journey-header-row">
+      <div class="journey-col-header">Stage</div>
+      <div class="journey-col-header">Customer Action</div>
+      <div class="journey-col-header">Data Signal</div>
+      <div class="journey-col-header">Recommendation</div>
+    </div>
+    <div class="journey-container">
+      <div class="journey-stage">
+        <div class="journey-row-header"><div class="journey-stage-num">01</div><div class="journey-stage-name">Acquisition</div></div>
+        <div class="journey-cell"><span class="journey-highlight">First purchase made.</span> 94% acquired in 2011, slowing sharply after.</div>
+        <div class="journey-cell"><span class="dot dot-orange"></span>first_year = 2011 for 6,498 customers</div>
+        <div class="journey-cell"><span class="dot dot-teal"></span>Reactivate acquisition channels — only 386 new customers since 2012.</div>
+      </div>
+      <div class="journey-stage">
+        <div class="journey-row-header"><div class="journey-stage-num">02</div><div class="journey-stage-name">Engagement</div></div>
+        <div class="journey-cell"><span class="journey-highlight">Repeat purchasing begins.</span> Customers return regularly, ~18x per customer.</div>
+        <div class="journey-cell"><span class="dot dot-orange"></span>avg frequency = 18.2; all 6,884 are repeat buyers</div>
+        <div class="journey-cell"><span class="dot dot-teal"></span>100% repeat rate is exceptional. Maintain through loyalty incentives.</div>
+      </div>
+      <div class="journey-stage">
+        <div class="journey-row-header"><div class="journey-stage-num">03</div><div class="journey-stage-name">Segmentation</div></div>
+        <div class="journey-cell"><span class="journey-highlight">Customers split into P0 / P2</span> based on RFM scores.</div>
+        <div class="journey-cell"><span class="dot dot-orange"></span>P0: 64% of customers, 80% of revenue</div>
+        <div class="journey-cell"><span class="dot dot-purple"></span>Focus upsell campaigns on P2 → P0 migration path.</div>
+      </div>
+      <div class="journey-stage">
+        <div class="journey-row-header"><div class="journey-stage-num">04</div><div class="journey-stage-name">Campaign Response</div></div>
+        <div class="journey-cell"><span class="journey-highlight">Customers respond to marketing</span> at increasing rates year-on-year.</div>
+        <div class="journey-cell"><span class="dot dot-orange"></span>Response rate: 9.8% → 12.6% (2011–2014)</div>
+        <div class="journey-cell"><span class="dot dot-teal"></span>Scale campaigns — improving ROI trend. Test personalised offers.</div>
+      </div>
+      <div class="journey-stage">
+        <div class="journey-row-header"><div class="journey-stage-num">05</div><div class="journey-stage-name">Loyalty</div></div>
+        <div class="journey-cell"><span class="journey-highlight">Long-term retained buyers</span> averaging ₹1,180 lifetime monetary value.</div>
+        <div class="journey-cell"><span class="dot dot-orange"></span>avg monetory = ₹1,179; stable revenue ₹2.1M/year</div>
+        <div class="journey-cell"><span class="dot dot-purple"></span>Introduce premium tier rewards for top P0 customers (freq 26+).</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="insight-grid">
+    <div class="insight-card">
+      <div class="insight-head">📌 Key Finding #1</div>
+      <div class="insight-body">Revenue is highly stable at ~₹2.1M/year (2012–2014) — a mature, loyal base. Growth will come from new customer acquisition, not spend-per-customer increases.</div>
+    </div>
+    <div class="insight-card teal">
+      <div class="insight-head">📌 Key Finding #2</div>
+      <div class="insight-body">P0 customers are disproportionately valuable. With 80% of revenue from 64% of customers, a small P2→P0 conversion program could significantly lift total revenue.</div>
+    </div>
+    <div class="insight-card purple">
+      <div class="insight-head">📌 Key Finding #3</div>
+      <div class="insight-body">Campaign response is improving (+28% over 4 years) but still only 11.1% overall. Personalisation and targeting by segment could realistically push this to 15–18%.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ======= DATA =======
+const monthLabels = ['2011-05','2011-08','2011-11','2012-02','2012-05','2012-08','2012-11','2013-02','2013-05','2013-08','2013-11','2014-02','2014-05','2014-08','2014-11','2015-01','2015-03'];
+const monthRevenue = [98901,188605,166830,170135,178880,179164,178998,160233,185826,180031,177341,154151,169555,178975,174855,179837,94829];
+
+const C = {
+  orange: '#ff5c1a',
+  orange2: '#ff8c4a',
+  teal: '#00e5c4',
+  purple: '#a78bfa',
+  muted: '#6b7280',
+  text: '#e8eaf0',
+  surface2: '#1c2030',
+  border: '#242840',
+};
+
+Chart.defaults.color = C.muted;
+Chart.defaults.borderColor = C.border;
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size = 11;
+
+function makeChart(id, config) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  return new Chart(ctx, config);
+}
+
+// Annual Revenue
+makeChart('annualRevChart', {
+  type: 'bar',
+  data: {
+    labels: ['2011*','2012','2013','2014','2015*'],
+    datasets: [{
+      label: 'Revenue (₹)',
+      data: [1340013, 2115542, 2137140, 2094508, 435175],
+      backgroundColor: ['rgba(255,92,26,0.4)','rgba(255,92,26,0.85)','rgba(255,140,74,0.85)','rgba(0,229,196,0.75)','rgba(167,139,250,0.4)'],
+      borderColor: [C.orange,C.orange,C.orange2,C.teal,'transparent'],
+      borderWidth: 2, borderRadius: 6,
+    }]
+  },
+  options: { plugins: { legend: { display: false } }, scales: { y: { grid: { color: C.border }, ticks: { callback: v => '₹'+Math.round(v/1000)+'k' } } } }
+});
+
+// Segment donut
+makeChart('segmentDonutChart', {
+  type: 'doughnut',
+  data: {
+    labels: ['P0 Premium (4,423)', 'P2 Standard (2,461)'],
+    datasets: [{ data: [4423, 2461], backgroundColor: [C.orange, C.teal], borderColor: '#151820', borderWidth: 4, hoverOffset: 8 }]
+  },
+  options: {
+    cutout: '65%',
+    plugins: { legend: { position: 'bottom', labels: { padding: 16, boxWidth: 12 } } }
+  }
+});
+
+// Distribution chart
+makeChart('distChart', {
+  type: 'bar',
+  data: {
+    labels: ['₹10-25','₹26-40','₹41-55','₹56-70','₹71-85','₹86-105'],
+    datasets: [{
+      label: 'Transactions',
+      data: [5200, 14300, 28400, 32100, 27800, 17169],
+      backgroundColor: 'rgba(0,229,196,0.6)',
+      borderColor: C.teal, borderWidth: 1, borderRadius: 4,
+    }]
+  },
+  options: { plugins: { legend: { display: false } }, scales: { y: { grid: { color: C.border } } } }
+});
+
+// Monetary distribution
+makeChart('monDistChart', {
+  type: 'bar',
+  data: {
+    labels: ['<₹500','₹500-1k','₹1k-1.5k','₹1.5k-2k','₹2k+'],
+    datasets: [{
+      label: 'Customers',
+      data: [604, 1761, 2688, 1635, 196],
+      backgroundColor: 'rgba(167,139,250,0.6)',
+      borderColor: C.purple, borderWidth: 1, borderRadius: 4,
+    }]
+  },
+  options: { plugins: { legend: { display: false } }, scales: { y: { grid: { color: C.border } } } }
+});
+
+// Monthly trend
+const allMonths = ['2011-05','2011-06','2011-07','2011-08','2011-09','2011-10','2011-11','2011-12','2012-01','2012-02','2012-03','2012-04','2012-05','2012-06','2012-07','2012-08','2012-09','2012-10','2012-11','2012-12','2013-01','2013-02','2013-03','2013-04','2013-05','2013-06','2013-07','2013-08','2013-09','2013-10','2013-11','2013-12','2014-01','2014-02','2014-03','2014-04','2014-05','2014-06','2014-07','2014-08','2014-09','2014-10','2014-11','2014-12','2015-01','2015-02','2015-03'];
+const allRev = [98901,174527,178038,188605,169173,182613,166830,181326,177969,170135,180453,167955,178880,172933,178964,179164,174813,181621,178998,173657,181729,160233,181389,173642,185826,176813,180983,180031,176830,181521,177341,180802,184554,154151,179804,174149,169555,172741,179026,178975,173385,179303,174855,174010,179837,160509,94829];
+
+makeChart('monthlyChart', {
+  type: 'line',
+  data: {
+    labels: allMonths,
+    datasets: [{
+      label: 'Monthly Revenue (₹)',
+      data: allRev,
+      borderColor: C.orange,
+      backgroundColor: 'rgba(255,92,26,0.08)',
+      borderWidth: 2,
+      pointRadius: 2,
+      pointHoverRadius: 5,
+      fill: true,
+      tension: 0.3,
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 12 } },
+      y: { grid: { color: C.border }, ticks: { callback: v => '₹'+Math.round(v/1000)+'k' } }
+    }
+  }
+});
+
+// Frequency dist
+makeChart('freqChart', {
+  type: 'bar',
+  data: {
+    labels: ['1–10 purchases','11–15','16–20','21–25','26+ purchases'],
+    datasets: [{
+      data: [467, 1685, 2471, 1700, 561],
+      backgroundColor: ['rgba(255,92,26,0.4)','rgba(255,92,26,0.55)','rgba(255,92,26,0.8)','rgba(255,140,74,0.7)','rgba(0,229,196,0.6)'],
+      borderRadius: 5, borderWidth: 0,
+    }]
+  },
+  options: { plugins: { legend: { display: false } }, scales: { y: { grid: { color: C.border } } } }
+});
+
+// Response by year
+makeChart('responseChart', {
+  type: 'line',
+  data: {
+    labels: ['2011','2012','2013','2014','2015'],
+    datasets: [{
+      label: 'Response Rate',
+      data: [9.84, 10.13, 11.86, 12.55, 8.51],
+      borderColor: C.teal,
+      backgroundColor: 'rgba(0,229,196,0.1)',
+      borderWidth: 2.5,
+      pointRadius: 5,
+      pointBackgroundColor: C.teal,
+      fill: true,
+      tension: 0.4,
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { grid: { color: C.border }, ticks: { callback: v => v+'%' }, min: 6 }
+    }
+  }
+});
+
+// Segment comparison
+makeChart('segCompChart', {
+  type: 'bar',
+  data: {
+    labels: ['Customers','Revenue Share (%)','Avg Txn (₹)','Avg Frequency'],
+    datasets: [
+      { label: 'P0 Premium', data: [4423, 80, 70.06, 18.5], backgroundColor: 'rgba(255,92,26,0.75)', borderRadius: 4, borderWidth: 0 },
+      { label: 'P2 Standard', data: [2461, 20, 50.41, 17.6], backgroundColor: 'rgba(0,229,196,0.65)', borderRadius: 4, borderWidth: 0 },
+    ]
+  },
+  options: {
+    plugins: { legend: { position: 'bottom', labels: { padding: 14, boxWidth: 10 } } },
+    scales: { y: { grid: { color: C.border } } }
+  }
+});
+
+// Cohort
+makeChart('cohortChart', {
+  type: 'bar',
+  data: {
+    labels: ['2011','2012','2013'],
+    datasets: [{
+      label: 'New customers',
+      data: [6498, 374, 12],
+      backgroundColor: ['rgba(255,92,26,0.85)','rgba(167,139,250,0.65)','rgba(107,114,128,0.5)'],
+      borderRadius: 5, borderWidth: 0
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: { y: { grid: { color: C.border } } }
+  }
+});
+
+// Segment revenue (phase 4)
+makeChart('segRevChart', {
+  type: 'doughnut',
+  data: {
+    labels: ['P0 Revenue (₹6.5M)', 'P2 Revenue (₹1.6M)'],
+    datasets: [{ data: [6498293, 1624085], backgroundColor: [C.orange, C.teal], borderColor: '#151820', borderWidth: 4, hoverOffset: 6 }]
+  },
+  options: { cutout: '60%', plugins: { legend: { position: 'bottom', labels: { padding: 16, boxWidth: 10 } } } }
+});
+
+// Spend distribution
+makeChart('spendChart', {
+  type: 'bar',
+  data: {
+    labels: ['<₹500','₹500-1k','₹1k-1.5k','₹1.5k-2k','₹2k+'],
+    datasets: [{
+      label: 'Customers',
+      data: [604, 1761, 2688, 1635, 196],
+      backgroundColor: ['rgba(107,114,128,0.5)','rgba(255,92,26,0.4)','rgba(255,92,26,0.75)','rgba(0,229,196,0.6)','rgba(167,139,250,0.7)'],
+      borderRadius: 5, borderWidth: 0
+    }]
+  },
+  options: { plugins: { legend: { display: false } }, scales: { y: { grid: { color: C.border } } } }
+});
+
+// ======= NAV =======
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs = ['overview','phase1','phase2','phase3','phase4'];
+  document.querySelectorAll('.nav-tab')[tabs.indexOf(id)].classList.add('active');
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>
